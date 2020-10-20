@@ -1,39 +1,47 @@
 import grpc
+import cbor2
 
-import core_pb2
-import core_pb2_grpc
 import platform_pb2
 import platform_pb2_grpc
 
-import cbor2
+class DAPIClient:
+    def __init__(self, stub, GRPC_REQUEST_TIMEOUT = 5):
+        self.stub = stub
+        self.GRPC_REQUEST_TIMEOUT = GRPC_REQUEST_TIMEOUT
 
-GRPC_REQUEST_TIMEOUT = 5
+    def get_documents(self, **params):
+        document_request = platform_pb2.GetDocumentsRequest()
+        if 'data_contract_id' in params:
+            document_request.data_contract_id = params['data_contract_id']
+        if 'document_type' in params:
+            document_request.document_type = params['document_type']
+        if 'where' in params:
+            document_request.where = params['where']
+        if 'order_by' in params:
+            document_request.order_by = params['order_by']
+        if 'limit' in params:
+            document_request.limit = params['limit']
+        if 'start_at' in params:
+            document_request.start_at = params['start_at']
+        if 'start_after' in params:
+            document_request.start_after = params['start_after']
 
-# Set up connection
-channel = grpc.insecure_channel('34.219.177.88:3010')
-stub = platform_pb2_grpc.PlatformStub(channel)
-stubCore = core_pb2_grpc.CoreStub(channel)
-
-def get_documents(contract_id, type, options):
-    # Get Document
-    # contract_id = dpns_contract_id
-
-    document_request = platform_pb2.GetDocumentsRequest()
-    document_request.data_contract_id = contract_id
-    document_request.document_type = type
-    document_request.limit = 2
-    # document_request.where = # Requires cbor (found in dapi-client)
-
-    docs = stub.getDocuments(document_request, GRPC_REQUEST_TIMEOUT)
-    # print(docs)
-    for d in docs.documents:
-        print('Document cbor: {}\n'.format(cbor2.loads(d)))
-
+        response = self.stub.getDocuments(document_request, self.GRPC_REQUEST_TIMEOUT)
+        return response.documents
 
 def main():
-    dpns_contract_id = 'CVZzFCbz4Rcf2Lmu9mvtC1CmvPukHy5kS2LNtNaBFM2N'
+    channel = grpc.insecure_channel('34.219.177.88:3010')
+    stub = platform_pb2_grpc.PlatformStub(channel)
 
-    get_documents(dpns_contract_id, 'domain', 'limit = 2')
+    client = DAPIClient(stub)
+    docs = client.get_documents(
+        data_contract_id='CVZzFCbz4Rcf2Lmu9mvtC1CmvPukHy5kS2LNtNaBFM2N',
+        document_type='domain',
+        limit=2
+    )
+
+    for d in docs:
+        print('Document cbor: {}\n'.format(cbor2.loads(d)))
 
 if __name__ == "__main__":
     main()
