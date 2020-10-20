@@ -1,0 +1,3 @@
+[submodule "dapi-grpc"]
+	path = dapi-grpc
+	url = https://github.com/dashevo/dapi-grpc.git
